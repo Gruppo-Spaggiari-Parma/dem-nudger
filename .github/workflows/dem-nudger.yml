@@ -1,0 +1,21 @@
+name: DEM v5 Nudger
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch: {}
+permissions:
+  contents: read
+concurrency:
+  group: dem-nudger
+  cancel-in-progress: false
+jobs:
+  nudge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: node nudge.js
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
