@@ -23,7 +23,11 @@ const PAT = process.env.HUBSPOT_PAT;
 const BASE = 'https://api.hubapi.com';
 const EV = '2-143900361', TR = '2-203372440';
 const H = { Authorization: `Bearer ${PAT}`, 'Content-Type': 'application/json' };
-const CHUNK = 2000, PAGE = 250;
+// Quanto lavora un evento per giro. 2.000 era la misura dell'azione HubSpot,
+// legata al suo tempo massimo; qui il tetto e' il timeout del job, molto piu'
+// largo. Alzarlo conta perche' il collo di bottiglia e' la frequenza con cui
+// GitHub esegue davvero il cron (a */5 capita che passino 10-15 minuti).
+const CHUNK = 6000, PAGE = 250;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const coda = (() => {
@@ -67,7 +71,11 @@ async function daFare() {
       limit: 100 })
   }, 'search-eventi');
   const oggi = new Date().toISOString().slice(0, 10);
-  return (d.results || []).filter(e => !coda[e.id] || coda[e.id] <= oggi);
+  // Prima gli eventi piu' vicini: se un giro non basta per tutti, a restare
+  // indietro dev'essere quello che ha ancora settimane davanti.
+  return (d.results || [])
+    .filter(e => !coda[e.id] || coda[e.id] <= oggi)
+    .sort((a, b) => Date.parse(a.properties.start_datetime) - Date.parse(b.properties.start_datetime));
 }
 
 async function membri(lid, cur) {
