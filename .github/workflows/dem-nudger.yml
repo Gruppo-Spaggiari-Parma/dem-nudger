@@ -16,12 +16,19 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
-      - run: node nudge.js
+      # ⚠️ PRIMA il bootstrap, POI il nudge, e l'ordine conta.
+      # La ricerca di HubSpot e' a consistenza differita: risponde con l'indice,
+      # che arriva qualche secondo dopo la scrittura. Il nudge scrive lo stato a
+      # "idle" e subito dopo a "ready"; se il bootstrap parte in quel momento, la
+      # ricerca gli risponde ancora "idle" e lui non vede niente da fare. Messo
+      # dopo il nudge stampava "niente da costruire" con un evento fermo a
+      # 16.236 su 18.741 (22 set 2026): non si perdeva nulla, ma ogni giro buono
+      # ne sprecava uno.
+      - run: node bootstrap.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
-      # Costruisce la coda di invio. Prima lo faceva un'azione di codice dentro
-      # HubSpot, che dal 15 set 2026 muore senza lasciare traccia (vedi
-      # bootstrap.js). Il nudge sopra resta: serve ai workflow HubSpot ancora vivi.
-      - run: node bootstrap.js
+      # Il nudge resta: serve ai workflow HubSpot ancora vivi (invito, T-3, T-1)
+      # e allo spazzino degli annullamenti.
+      - run: node nudge.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
