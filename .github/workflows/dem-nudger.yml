@@ -11,11 +11,17 @@ concurrency:
 jobs:
   nudge:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: '22' }
       - run: node nudge.js
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
+      # Costruisce la coda di invio. Prima lo faceva un'azione di codice dentro
+      # HubSpot, che dal 15 set 2026 muore senza lasciare traccia (vedi
+      # bootstrap.js). Il nudge sopra resta: serve ai workflow HubSpot ancora vivi.
+      - run: node bootstrap.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
