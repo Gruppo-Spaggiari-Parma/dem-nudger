@@ -65,43 +65,62 @@ async function cancelSweep() {
       { propertyName: "dem_annulla_e_avvisa", operator: "EQ", value: "true" },
       { propertyName: "annullato", operator: "NEQ", value: "true" }
     ]}],
-    properties: ["name"],
+    properties: ["name", "brand"],
     limit: 100
   };
   const r = await hfetch(`${BASE}/crm/v3/objects/${EV}/search`, { method: "POST", headers: H, body: JSON.stringify(body) }, "search-cancel");
   const data = await r.json();
   if (!data.total) { console.log(new Date().toISOString(), "nessun evento da annullare"); return; }
   for (const e of data.results) {
-    const eid = e.id, name = (e.properties || {}).name;
-    console.log(new Date().toISOString(), `ANNULLAMENTO evento ${eid} (${name})`);
+    const eid = e.id, name = (e.properties || {}).name, brand = (e.properties || {}).brand || "";
+    // ⛔ L'email di annullamento dipende dal MARCHIO (25 set 2026). Quella del
+    // flusso "send_cancel" e' a marchio Spaggiari: spedita per un corso Italia
+    // Scuola arrivava a 12.167 invitati con il mittente sbagliato. Italia Scuola
+    // ha il suo flusso (send_cancel_is_ora); per qualsiasi altro marchio si ferma
+    // la sequenza senza spedire niente, finche' non esiste un'email sua.
+    const destinazione = brand === "Spaggiari" ? "send_cancel"
+      : brand === "Italia Scuola" ? "send_cancel_is_ora" : "cancelled";
+    console.log(new Date().toISOString(), `ANNULLAMENTO evento ${eid} (${name}) marchio ${brand || "?"} -> ${destinazione}`);
     // paginazione tracking attivi dell'evento
-    let after = null, ids = [], guard = 0;
-    do {
-      const sb = {
-        filterGroups: [{ filters: [
-          { propertyName: "dem_v5_evento_id", operator: "EQ", value: eid },
-          { propertyName: "dem_v5_status", operator: "IN", values: ACTIVE_STATES }
-        ]}],
-        properties: ["dem_v5_status"], limit: 100
-      };
-      if (after) sb.after = after;
-      const sr = await hfetch(`${BASE}/crm/v3/objects/${TR}/search`, { method: "POST", headers: H, body: JSON.stringify(sb) }, `search-tracking ${eid}`);
-      const sd = await sr.json();
-      (sd.results || []).forEach(t => ids.push(t.id));
-      after = sd.paging && sd.paging.next ? sd.paging.next.after : null;
-      await sleep(350); // rispetta il limite al secondo
-    } while (after && ++guard < 500);
+    // ⚠️ La ricerca HubSpot non restituisce piu' di 10.000 risultati: su un
+    // evento da 12.167 invitati 2.167 restavano fuori dall'annullamento e
+    // continuavano a ricevere i promemoria (trovato il 25 set 2026). Si va per
+    // id crescente e si riparte dall'ultimo visto, cosi' il tetto non conta.
+    let ids = [], ultimo = "0", guard = 0;
+    while (true) {
+      let after = null, giro = 0, ultimoGiro = ultimo;
+      do {
+        const sb = {
+          filterGroups: [{ filters: [
+            { propertyName: "dem_v5_evento_id", operator: "EQ", value: eid },
+            { propertyName: "dem_v5_status", operator: "IN", values: ACTIVE_STATES },
+            { propertyName: "hs_object_id", operator: "GT", value: ultimo }
+          ]}],
+          sorts: [{ propertyName: "hs_object_id", direction: "ASCENDING" }],
+          properties: ["dem_v5_status"], limit: 100
+        };
+        if (after) sb.after = after;
+        const sr = await hfetch(`${BASE}/crm/v3/objects/${TR}/search`, { method: "POST", headers: H, body: JSON.stringify(sb) }, `search-tracking ${eid}`);
+        const sd = await sr.json();
+        (sd.results || []).forEach(t => { ids.push(t.id); ultimoGiro = t.id; });
+        giro += (sd.results || []).length;
+        after = sd.paging && sd.paging.next ? sd.paging.next.after : null;
+        await sleep(350); // rispetta il limite al secondo
+      } while (after && giro < 9900);
+      if (!after || ++guard > 20) break;
+      ultimo = ultimoGiro;
+    }
     console.log(`  tracking attivi trovati: ${ids.length}`);
     // batch update -> send_cancel
     let done = 0;
     for (let i = 0; i < ids.length; i += 100) {
       const chunk = ids.slice(i, i + 100);
       await hfetch(`${BASE}/crm/v3/objects/${TR}/batch/update`, { method: "POST", headers: H,
-        body: JSON.stringify({ inputs: chunk.map(id => ({ id, properties: { dem_v5_status: "send_cancel" } })) }) }, `batch-cancel ${eid}`);
+        body: JSON.stringify({ inputs: chunk.map(id => ({ id, properties: { dem_v5_status: destinazione } })) }) }, `batch-cancel ${eid}`);
       done += chunk.length;
       await sleep(350);
     }
-    console.log(`  -> ${done} tracking a send_cancel`);
+    console.log(`  -> ${done} tracking a ${destinazione}`);
     // marca evento annullato (stop nuovi bootstrap + non ri-processare)
     await hfetch(`${BASE}/crm/v3/objects/${EV}/${eid}`, { method: "PATCH", headers: H, body: JSON.stringify({ properties: { annullato: "true" } }) }, `patch-annullato ${eid}`);
     console.log(`  -> evento ${eid} marcato annullato`);
