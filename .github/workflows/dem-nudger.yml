@@ -24,6 +24,13 @@ jobs:
       # dopo il nudge stampava "niente da costruire" con un evento fermo a
       # 16.236 su 18.741 (22 set 2026): non si perdeva nulla, ma ogni giro buono
       # ne sprecava uno.
+      # ⛔ INVITI A LISTA (30/9/2026): per gli eventi con dem_v6_attivo=true tre email marketing
+      # programmate sulle liste, nessun record custom. Gira PRIMA del bootstrap.
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install -q tzdata && python inviti_lista.py
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
       - run: node bootstrap.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}

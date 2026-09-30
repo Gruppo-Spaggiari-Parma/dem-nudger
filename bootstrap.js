@@ -63,7 +63,9 @@ async function daFare() {
       filterGroups: [{ filters: [
         { propertyName: 'dem_v5_bootstrap_status', operator: 'IN', values: ['ready', 'in_progress'] },
         { propertyName: 'annullato', operator: 'NEQ', value: 'true' },
-        { propertyName: 'dem_strategy', operator: 'EQ', value: 'LIVE' }] }],
+        { propertyName: 'dem_strategy', operator: 'EQ', value: 'LIVE' },
+        // gli eventi del sistema nuovo (inviti a lista, 30/9/2026) non creano record
+        { propertyName: 'dem_v6_attivo', operator: 'NEQ', value: 'true' }] }],
       properties: ['name', 'start_datetime', 'dem_target_list_ids', 'dem_landing_url', 'registration_page',
         'venue', 'meeting_link', 'featured_image', 'page_body_content',
         'dem_v5_bootstrap_status', 'dem_v5_bootstrap_cursor', 'dem_v5_bootstrap_total',
