@@ -155,8 +155,20 @@ async function lavora(e) {
   let fatti = parseInt(q.dem_v5_bootstrap_cursor, 10) || 0;
   let letti = 0, creati = 0, saltati = 0;
 
+  // ⛔ GIRO A VUOTO (30/9/2026): su «Opportunita' per le scuole sui bandi» il cursore delle
+  // memberships ripartiva e sono stati letti 2.611.846 contatti da una lista di 12.318.
+  // Una pagina gia' vista o un cursore gia' usato chiudono la lista; e nessun evento legge
+  // piu' del suo totale (con un margine per le liste che crescono).
+  const visti = new Set();
   while (idx < liste.length && letti < CHUNK) {
+    if (totale && fatti + letti > totale * 1.2 + 500) {
+      console.log(`  ${id}: letti ${fatti + letti} su un totale di ${totale}, si chiude`);
+      idx = liste.length; cur = ''; break;
+    }
     const p = await membri(liste[idx], cur);
+    const firma = liste[idx] + ':' + (p.vids[0] || '') + ':' + p.next;
+    if (visti.has(firma) || (p.next && p.next === cur)) { idx += 1; cur = ''; continue; }
+    visti.add(firma);
     cur = p.next; letti += p.vids.length;
     if (p.vids.length) {
       const chiavi = p.vids.map(v => `${id}_${v}`);

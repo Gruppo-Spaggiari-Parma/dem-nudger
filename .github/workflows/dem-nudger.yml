@@ -32,3 +32,8 @@ jobs:
       - run: node nudge.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
+      # lo spazzino (30/9/2026): i tracking degli eventi finiti da 3 giorni vanno nel cestino,
+      # altrimenti si accumulano fino al tetto dei record custom del portale
+      - run: node pulizia.js
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
