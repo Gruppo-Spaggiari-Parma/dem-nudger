@@ -114,6 +114,14 @@ def riempi(x, val):
     return x
 
 
+def giorno_lavorativo(chiave, quando):
+    """Niente invii di sabato e domenica (Andrea, 8/10/2026): l'invito T-14 slitta al lunedi dopo,
+    i promemoria T-3 e T-1 vanno al venerdi prima."""
+    while quando.weekday() >= 5:
+        quando += D.timedelta(days=1) if chiave == "T14" else -D.timedelta(days=1)
+    return quando
+
+
 def crea_email(ev, chiave, quando, liste):
     mod = api("/marketing/v3/emails/%s" % modelli(ev)[chiave][0])
     val, _ = valori(ev)
@@ -162,7 +170,10 @@ def main():
         for chiave, (_, giorni) in modelli(ev).items():
             if chiave in fatte:
                 continue
-            quando = (inizio - D.timedelta(days=giorni)).replace(hour=ORA, minute=0, second=0, microsecond=0)
+            quando = giorno_lavorativo(chiave, (inizio - D.timedelta(days=giorni)).replace(hour=ORA, minute=0, second=0, microsecond=0))
+            if chiave == "T1" and giorno_lavorativo("T3", (inizio - D.timedelta(days=3)).replace(hour=ORA, minute=0, second=0, microsecond=0)).date() == quando.date():
+                fatte[chiave] = "saltato"                    # il venerdi del T-3 e' lo stesso giorno: un solo promemoria
+                continue
             if PROVA:
                 quando = adesso + D.timedelta(minutes=10 + 5 * len(nuove))
             if quando <= adesso + D.timedelta(minutes=5):
