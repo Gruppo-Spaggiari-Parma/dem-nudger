@@ -33,6 +33,12 @@ TOKEN = os.environ.get("HUBSPOT_PAT") or open(os.path.expanduser("~/.hubspot_pat
 BASE = "https://api.hubapi.com"
 EV = "2-143900361"
 MODELLI = {"T14": ("412313264319", 14), "T3": ("412278645961", 3), "T1": ("412278645964", 1)}
+# eventi ItaliaScuola: stessi modelli ma col marchio proprio (mittente redazione@italiascuola.it, verde, footer IS) - clonati il 4/9/2026
+MODELLI_IS = {"T14": ("465634433262", 14), "T3": ("465634433265", 3), "T1": ("465634433268", 1)}
+
+
+def modelli(ev):
+    return MODELLI_IS if (ev["properties"].get("brand") or "") == "Italia Scuola" else MODELLI
 ORA = 9                                  # ora di invio, Europe/Rome
 OPPOSIZIONI = "5979"                     # lista sempre esclusa (privacy art.21)
 LISTA_PROVA = "4236"
@@ -109,7 +115,7 @@ def riempi(x, val):
 
 
 def crea_email(ev, chiave, quando, liste):
-    mod = api("/marketing/v3/emails/%s" % MODELLI[chiave][0])
+    mod = api("/marketing/v3/emails/%s" % modelli(ev)[chiave][0])
     val, _ = valori(ev)
     nome = "[DEM v6] %s · %s · %s" % (chiave, (ev["properties"].get("name") or "")[:80], ev["id"])
     corpo = {
@@ -140,7 +146,7 @@ def eventi():
     else:
         filtri.append({"propertyName": "dem_v6_attivo", "operator": "EQ", "value": "true"})
     r = api("/crm/v3/objects/%s/search" % EV, {"filterGroups": [{"filters": filtri}], "limit": 100,
-            "properties": ["name", "start_datetime", "dem_target_list_ids", "dem_landing_url", "registration_page",
+            "properties": ["name", "brand", "start_datetime", "dem_target_list_ids", "dem_landing_url", "registration_page",
                            "venue", "meeting_link", "featured_image", "page_body_content", "dem_v6_email_ids"]}, "POST")
     return r.get("results") or []
 
@@ -153,7 +159,7 @@ def main():
         fatte = dict(x.split(":", 1) for x in (p.get("dem_v6_email_ids") or "").split(",") if ":" in x)
         _, inizio = valori(ev)
         nuove = {}
-        for chiave, (_, giorni) in MODELLI.items():
+        for chiave, (_, giorni) in modelli(ev).items():
             if chiave in fatte:
                 continue
             quando = (inizio - D.timedelta(days=giorni)).replace(hour=ORA, minute=0, second=0, microsecond=0)
