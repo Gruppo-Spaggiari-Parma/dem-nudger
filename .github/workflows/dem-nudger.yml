@@ -31,6 +31,10 @@ jobs:
       - run: pip install -q tzdata && python inviti_lista.py
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
+      # Didacta Lanciano (9/10/2026): lista degli iscritti, esclusa dagli invii della campagna a giorni alterni
+      - run: python didacta_esclusi.py
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
       - run: node bootstrap.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
