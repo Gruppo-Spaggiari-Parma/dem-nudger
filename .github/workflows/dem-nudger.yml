@@ -35,6 +35,10 @@ jobs:
       - run: python didacta_esclusi.py
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
+      # Didacta Lanciano: tiene aggiornate le email programmate (programma degli incontri) con le verifiche del 9/10/2026
+      - run: python didacta_motore.py
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
       - run: node bootstrap.js
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
