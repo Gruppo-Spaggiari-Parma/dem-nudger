@@ -324,7 +324,7 @@ def corpo_email(t, prog):
     d = D.datetime(*t[1], 9, 0, tzinfo=ROMA)
     return {"name": "[DIDACTA LANCIANO] %s - %s" % (t[0], t[2][:70]), "subject": t[2], "content": c, "from": {"fromName": "Spaggiari", "replyTo": "marketing@spaggiari.eu"},
             "subscriptionDetails": m["subscriptionDetails"], "subcategory": "batch", "businessUnitId": m.get("businessUnitId"), "language": "it",
-            "to": {"contactIlsLists": {"include": LISTE, "exclude": ESCLUDI + lista_esclusi()}, "limitSendFrequency": False, "suppressGraymail": True},
+            "to": {"contactIlsLists": {"include": LISTE, "exclude": ESCLUDI + lista_esclusi()}, "limitSendFrequency": False, "suppressGraymail": False},
             "webversion": {"enabled": False}}, d
 
 

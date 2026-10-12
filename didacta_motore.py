@@ -27,7 +27,7 @@ import time
 import didacta_campagna as C
 
 PROVA = "--prova" in sys.argv
-MIN_ORE, MAX_ORE = 3, 40            # finestra: si rigenera solo se l'invio e' fra 3 e 40 ore
+MIN_ORE, MAX_ORE = 3, int(os.environ.get("DIDACTA_MAX_ORE", "40"))            # finestra: si rigenera solo se l'invio e' fra 3 e 40 ore
 MODULO = "module_17787858993112"
 
 
@@ -66,7 +66,8 @@ def rigenera(eid, t, prog, adesso, destinatari=None):
         corpo["to"] = destinatari
     nuovo = corpo["content"]["widgets"][MODULO]["body"]["html"]
     vecchio = m["content"]["widgets"][MODULO]["body"]["html"]
-    if nuovo == vecchio and corpo["subject"] == m["subject"]:
+    graymail_ok = bool((m.get("to") or {}).get("suppressGraymail")) == bool(corpo["to"].get("suppressGraymail"))
+    if nuovo == vecchio and corpo["subject"] == m["subject"] and graymail_ok:
         return "gia' aggiornata"
     if PROVA:
         return "da rigenerare (prova: non lo faccio)"
