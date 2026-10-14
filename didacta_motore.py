@@ -67,7 +67,9 @@ def rigenera(eid, t, prog, adesso, destinatari=None):
     nuovo = corpo["content"]["widgets"][MODULO]["body"]["html"]
     vecchio = m["content"]["widgets"][MODULO]["body"]["html"]
     graymail_ok = bool((m.get("to") or {}).get("suppressGraymail")) == bool(corpo["to"].get("suppressGraymail"))
-    if nuovo == vecchio and corpo["subject"] == m["subject"] and graymail_ok:
+    liste = lambda x: (sorted((x.get("contactIlsLists") or {}).get("include") or []), sorted((x.get("contactIlsLists") or {}).get("exclude") or []))
+    liste_ok = liste(m.get("to") or {}) == liste(corpo["to"])          # 14/10: anche le liste, non solo il graymail
+    if nuovo == vecchio and corpo["subject"] == m["subject"] and graymail_ok and liste_ok:
         return "gia' aggiornata"
     if PROVA:
         return "da rigenerare (prova: non lo faccio)"

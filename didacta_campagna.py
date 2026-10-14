@@ -27,7 +27,8 @@ PAGINA = "https://www.spaggiari.eu/didacta-2026-lanciano"
 UTM = "?utm_source=hubspot&utm_medium=email&utm_campaign=didacta-lanciano-2026&utm_content=%s"
 PADIGLIONE = "Padiglione C"
 STAND = "Stand 19"
-LISTE = ["2352", "65", "129", "2323", "1492", "1493", "1494", "1495", "1035", "1037"]      # come Didacta Firenze (marzo 2026)
+LISTE = ["2352", "65", "129", "2323", "1492", "1493", "1494", "1495", "1035", "1037",     # come Didacta Firenze (marzo 2026)
+         "6083", "6259"]   # Andrea 14/10: «non escludere nessuno» -> + tutti i contatti delle statali (6083) e delle scuole abruzzesi (6259)
 ESCLUDI = ["610", "5979"]          # lista di esclusione del sito, opposizioni art.21 (+ la lista degli iscritti, vedi ESCLUSI_ISCRITTI)
 ESCLUSI_ISCRITTI = os.path.join(QUI, "didacta_lista_iscritti.txt")
 
