@@ -139,10 +139,13 @@ async function lavora(e) {
   }
   const ms = /^\d+$/.test(String(q.start_datetime).trim()) ? Number(q.start_datetime) : Date.parse(q.start_datetime);
   const giorni = (ms - Date.now()) / 86400000;
-  const iniziale = giorni <= 14 ? 'send_immediate' : 'pending';
+  const landing = q.dem_landing_url || q.registration_page || '';
+  // ItaliaScuola (Andrea, 15/10/2026): niente T-14, l'invito parte subito alla pubblicazione dell'evento
+  // (i flussi gemelli IS riconoscono l'evento dalla landing italiascuola.it).
+  const eItaliaScuola = /italiascuola\.it/i.test(landing);
+  const iniziale = (giorni <= 14 || eItaliaScuola) ? 'send_immediate' : 'pending';
   const d = new Date(ms);
   const fmt = o => new Intl.DateTimeFormat('it-IT', Object.assign({ timeZone: 'Europe/Rome' }, o)).format(d);
-  const landing = q.dem_landing_url || q.registration_page || '';
 
   // il totale serve solo a far vedere a che punto siamo
   let totale = parseInt(q.dem_v5_bootstrap_total, 10) || 0;

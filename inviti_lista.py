@@ -174,6 +174,9 @@ def main():
             if chiave == "T1" and giorno_lavorativo("T3", (inizio - D.timedelta(days=3)).replace(hour=ORA, minute=0, second=0, microsecond=0)).date() == quando.date():
                 fatte[chiave] = "saltato"                    # il venerdi del T-3 e' lo stesso giorno: un solo promemoria
                 continue
+            if chiave == "T14" and (p.get("brand") or "") == "Italia Scuola":
+                # ItaliaScuola (Andrea, 15/10/2026): niente attesa dei 14 giorni, l'invito parte subito (rispettando il weekend)
+                quando = giorno_lavorativo("T14", adesso + D.timedelta(minutes=10))
             if PROVA:
                 quando = adesso + D.timedelta(minutes=10 + 5 * len(nuove))
             if quando <= adesso + D.timedelta(minutes=5):
