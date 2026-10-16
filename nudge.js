@@ -63,9 +63,12 @@ async function cancelSweep() {
   const body = {
     filterGroups: [{ filters: [
       { propertyName: "dem_annulla_e_avvisa", operator: "EQ", value: "true" },
-      { propertyName: "annullato", operator: "NEQ", value: "true" }
+      // 16/10/2026: prima l'evento doveva avere annullato != true; se Andrea metteva a mano «annullato» insieme a «annulla e avvisa»
+      // (WBRITALDS1 e ITACRCP/02) il giro non lo vedeva piu' e i 13.120 invitati restavano senza avviso e con i promemoria in coda.
+      // Ora si guardano anche gli annullati, ma solo eventi recenti/futuri e solo se hanno ancora tracking attivi (vedi sotto).
+      { propertyName: "start_datetime", operator: "GTE", value: String(Date.now() - 3 * 86400000) }
     ]}],
-    properties: ["name", "brand"],
+    properties: ["name", "brand", "annullato"],
     limit: 100
   };
   const r = await hfetch(`${BASE}/crm/v3/objects/${EV}/search`, { method: "POST", headers: H, body: JSON.stringify(body) }, "search-cancel");
@@ -80,6 +83,11 @@ async function cancelSweep() {
     // la sequenza senza spedire niente, finche' non esiste un'email sua.
     const destinazione = brand === "Spaggiari" ? "send_cancel"
       : brand === "Italia Scuola" ? "send_cancel_is_ora" : "cancelled";
+    // un evento gia' annullato e senza tracking attivi e' a posto: niente da fare, niente rumore nel log
+    const attivi = await hfetch(`${BASE}/crm/v3/objects/${TR}/search`, { method: "POST", headers: H, body: JSON.stringify({
+      filterGroups: [{ filters: [{ propertyName: "dem_v5_evento_id", operator: "EQ", value: eid },
+        { propertyName: "dem_v5_status", operator: "IN", values: ACTIVE_STATES }] }], limit: 1 }) }, `attivi ${eid}`);
+    if (!((await attivi.json()).total)) { await sleep(350); continue; }
     console.log(new Date().toISOString(), `ANNULLAMENTO evento ${eid} (${name}) marchio ${brand || "?"} -> ${destinazione}`);
     // paginazione tracking attivi dell'evento
     // ⚠️ La ricerca HubSpot non restituisce piu' di 10.000 risultati: su un
