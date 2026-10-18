@@ -77,11 +77,18 @@ def api(m, u, b=None):
     time.sleep(0.15)
     r = urllib.request.Request("https://api.hubapi.com" + u, data=json.dumps(b).encode() if b is not None else None, method=m,
                                headers={"Authorization": "Bearer " + TOKEN, "Content-Type": "application/json"})
-    try:
-        x = urllib.request.urlopen(r, timeout=90).read()
-        return json.loads(x) if x else {}
-    except urllib.error.HTTPError as e:
-        raise RuntimeError("%s %s -> %s %s" % (m, u[:60], e.code, e.read().decode()[:300]))
+    # 429 (limite al secondo, condiviso con gli altri giri del portale) e 5xx:
+    # si riprova con attesa crescente. Il 17/10 un 429 isolato ha mandato in
+    # rosso il Nudger senza nessun danno vero.
+    for t in range(5):
+        try:
+            x = urllib.request.urlopen(r, timeout=90).read()
+            return json.loads(x) if x else {}
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 500, 502, 503, 504) and t < 4:
+                time.sleep(2 * (t + 1))
+                continue
+            raise RuntimeError("%s %s -> %s %s" % (m, u[:60], e.code, e.read().decode()[:300]))
 
 
 def programma():
