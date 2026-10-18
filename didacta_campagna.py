@@ -319,7 +319,9 @@ def contenuto(t, prog):
 def lista_esclusi():
     """Liste statiche escluse: iscritti agli eventi (6237, tenuta dal motore) e contatti gia' raggiunti dalle 8 mail partite per errore il 9/10 (6238)."""
     out = []
-    for nome in (ESCLUSI_ISCRITTI, os.path.join(QUI, "didacta_lista_raggiunti.txt")):
+    # Andrea 18/10/2026: «le liste devono essere complete, non fare tagli e non inventarti regole, tutti devono ricevere
+    # tutto» -> niente piu' esclusione degli iscritti (6237): restano solo gli obblighi di legge (ESCLUDI)
+    for nome in ():
         try:
             out += [x.strip() for x in io.open(nome, encoding="utf-8") if x.strip()]
         except FileNotFoundError:
