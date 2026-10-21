@@ -144,7 +144,8 @@ def corpo_email(w):
     return {"name": "[DIDACTA LANCIANO] %s - %s" % (w[0], w[4][:70]), "subject": w[4], "content": c,
             "from": {"fromName": "Spaggiari", "replyTo": "marketing@spaggiari.eu"},
             "subscriptionDetails": m["subscriptionDetails"], "subcategory": "batch", "businessUnitId": m.get("businessUnitId"), "language": "it",
-            "to": {"contactIlsLists": {"include": C.LISTE, "exclude": ["610", "5979"]}   # 18/10 Andrea: tutti ricevono tutto, anche gli iscritti, "limitSendFrequency": False, "suppressGraymail": False},
+            # 18/10 Andrea: tutti ricevono tutto, anche gli iscritti; 6460 = consenso spaggiari.eu No (19/10)
+            "to": {"contactIlsLists": {"include": C.LISTE, "exclude": ["610", "5979", "6460"]}, "limitSendFrequency": False, "suppressGraymail": False},
             "webversion": {"enabled": False}}
 
 
