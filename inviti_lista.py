@@ -41,6 +41,8 @@ def modelli(ev):
     return MODELLI_IS if (ev["properties"].get("brand") or "") == "Italia Scuola" else MODELLI
 ORA = 9                                  # ora di invio, Europe/Rome
 OPPOSIZIONI = "5979"                     # lista sempre esclusa (privacy art.21)
+CONSENSO_NO = "6460"                     # consenso spaggiari.eu = No: esclusa da ogni invio (Andrea 19/10/2026)
+CONSENSO_MAI_RAGGIUNTI = "6454"          # consenso si', mai raggiunti: sempre inclusa (Andrea 19/10/2026)
 LISTA_PROVA = "4236"
 ROMA = ZoneInfo("Europe/Rome")
 PROVA = sys.argv[sys.argv.index("--prova") + 1] if "--prova" in sys.argv else None
@@ -135,8 +137,9 @@ def crea_email(ev, chiave, quando, liste):
         "subcategory": "batch",
         "businessUnitId": mod.get("businessUnitId"),
         "language": mod.get("language") or "it",
-        "to": {"contactIlsLists": {"include": liste, "exclude": [OPPOSIZIONI]},
-               "limitSendFrequency": False, "suppressGraymail": True},
+        # Andrea 18-21/10/2026: tutti ricevono tutto -> filtro graymail spento, 6454 sempre dentro, fuori solo 5979 e 6460
+        "to": {"contactIlsLists": {"include": sorted(set(liste) | {CONSENSO_MAI_RAGGIUNTI}), "exclude": [OPPOSIZIONI, CONSENSO_NO]},
+               "limitSendFrequency": False, "suppressGraymail": False},
         "webversion": {"enabled": False},
         "publishDate": quando.astimezone(D.timezone.utc).isoformat().replace("+00:00", "Z"),
     }
