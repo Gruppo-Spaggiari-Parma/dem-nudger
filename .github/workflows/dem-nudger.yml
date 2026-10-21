@@ -31,6 +31,11 @@ jobs:
       - run: pip install -q tzdata && python inviti_lista.py
         env:
           HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
+      # Guardiano (21/10/2026, audit pianificazione): ogni mail programmata esclude 5979 e 6460, anche quelle fatte a mano
+      - run: python guardia_liste.py
+        continue-on-error: true
+        env:
+          HUBSPOT_PAT: ${{ secrets.HUBSPOT_PAT }}
       # Didacta Lanciano (9/10/2026): lista degli iscritti, esclusa dagli invii della campagna a giorni alterni
       - run: python didacta_esclusi.py
         env:
