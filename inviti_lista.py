@@ -116,22 +116,70 @@ def riempi(x, val):
     return x
 
 
+def pasquetta(anno):
+    """Lunedi' dell'Angelo (algoritmo di Meeus/Jones/Butcher per la Pasqua)."""
+    a, b, c = anno % 19, anno // 100, anno % 100
+    d, e = b // 4, b % 4
+    f = (b + 8) // 25
+    g = (b - f + 1) // 3
+    h = (19 * a + b - d - g + 15) % 30
+    i, k = c // 4, c % 4
+    l = (32 + 2 * e + 2 * i - h - k) % 7
+    m = (a + 11 * h + 22 * l) // 451
+    mese = (h + l - 7 * m + 114) // 31
+    giorno = (h + l - 7 * m + 114) % 31 + 1
+    return D.date(anno, mese, giorno) + D.timedelta(days=1)
+
+
+def festivo(giorno):
+    """Feste nazionali (Andrea, 16/11/2026: il T-1 del webinar bandi era finito sull'8 dicembre)."""
+    fisse = {(1, 1), (6, 1), (25, 4), (1, 5), (2, 6), (15, 8), (1, 11), (8, 12), (25, 12), (26, 12)}
+    return (giorno.day, giorno.month) in fisse or giorno == pasquetta(giorno.year)
+
+
 def giorno_lavorativo(chiave, quando):
-    """Niente invii di sabato e domenica (Andrea, 8/10/2026): l'invito T-14 slitta al lunedi dopo,
-    i promemoria T-3 e T-1 vanno al venerdi prima."""
-    while quando.weekday() >= 5:
+    """Niente invii di sabato, domenica e feste nazionali (Andrea, 8/10 e 16/11/2026): l'invito T-14 slitta
+    al giorno lavorativo dopo, i promemoria T-3 e T-1 al giorno lavorativo prima."""
+    while quando.weekday() >= 5 or festivo(quando.date()):
         quando += D.timedelta(days=1) if chiave == "T14" else -D.timedelta(days=1)
     return quando
 
 
+NUMERI = {2: "due", 3: "tre", 4: "quattro", 5: "cinque", 6: "sei", 7: "sette"}
+GIORNI_SETT = ["lunedì", "martedì", "mercoledì", "giovedì", "venerdì", "sabato", "domenica"]
+MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto",
+        "settembre", "ottobre", "novembre", "dicembre"]
+
+
+def adatta(chiave, x, quando, inizio):
+    """Quando il promemoria slitta (weekend o festa), «fra tre giorni» e «domani» non sono piu' veri
+    (16/11/2026: il T-3 del 4/12 diceva «mancano 3 giorni» a un webinar del 9/12). Si riscrive la
+    distanza vera: «mancano 5 giorni», «fra cinque giorni»; al posto di «domani» il giorno dell'evento."""
+    veri = (inizio.date() - quando.date()).days
+    if chiave == "T14" or veri == {"T3": 3, "T1": 1}[chiave]:
+        return x
+    if isinstance(x, list):
+        return [adatta(chiave, y, quando, inizio) for y in x]
+    if isinstance(x, dict):
+        return {k: adatta(chiave, v, quando, inizio) for k, v in x.items()}
+    if not isinstance(x, str):
+        return x
+    if chiave == "T3":
+        x = re.sub(r"\b([Mm]ancano) 3 giorni", lambda m: "%s %d giorni" % (m.group(1), veri), x)
+        return re.sub(r"\b([Ff])ra tre giorni", lambda m: "%sra %s giorni" % (m.group(1), NUMERI.get(veri, str(veri))), x)
+    gs = GIORNI_SETT[inizio.weekday()]
+    x = re.sub(r"\bDomani\b", gs.capitalize(), x)
+    return re.sub(r"\bdomani\b", "%s %d %s" % (gs, inizio.day, MESI[inizio.month - 1]), x)
+
+
 def crea_email(ev, chiave, quando, liste):
     mod = api("/marketing/v3/emails/%s" % modelli(ev)[chiave][0])
-    val, _ = valori(ev)
+    val, inizio = valori(ev)
     nome = "[DEM v6] %s · %s · %s" % (chiave, (ev["properties"].get("name") or "")[:80], ev["id"])
     corpo = {
         "name": nome,
-        "subject": riempi(mod["subject"], val),
-        "content": riempi(mod["content"], val),
+        "subject": adatta(chiave, riempi(mod["subject"], val), quando, inizio),
+        "content": adatta(chiave, riempi(mod["content"], val), quando, inizio),
         "from": mod["from"],
         "subscriptionDetails": mod["subscriptionDetails"],
         "subcategory": "batch",
