@@ -28,6 +28,7 @@ PROVA = "--prova" in sys.argv
 OBBLIGATORIE = ["5979", "6460"]
 BU_SCUOLANET = 18413835
 MARGINE_MIN = 30
+SERVIZIO = {"-1", "377360882"}             # Transactional, Customer Service Communication
 ANDREA = "pizzola@spaggiari.eu"
 
 
@@ -114,6 +115,11 @@ def main():
         r = api("/marketing/v3/emails?limit=100&sort=-updatedAt" + ("&after=" + dopo if dopo else ""))
         for e in r.get("results", []):
             if e.get("businessUnitId") == BU_SCUOLANET or str(e.get("type", "")).startswith("AUTOMATED") or not e.get("publishDate"):
+                continue
+            # 16/11/2026 (Andrea): la posta di servizio (Transactional, Customer Service Communication) agli iscritti di un
+            # evento o ai clienti non e' marketing: l'opposizione art. 21 non si applica e la 6460 toglierebbe a un iscritto
+            # link, logistica o annullamenti. Il guardiano guarda solo le mail con un abbonamento di marketing.
+            if str(((e.get("subscriptionDetails") or {}).get("subscriptionId")) or "") in SERVIZIO:
                 continue
             mancano = manca(e)
             if not mancano:
