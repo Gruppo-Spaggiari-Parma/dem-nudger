@@ -81,8 +81,10 @@ async function cancelSweep() {
     // Scuola arrivava a 12.167 invitati con il mittente sbagliato. Italia Scuola
     // ha il suo flusso (send_cancel_is_ora); per qualsiasi altro marchio si ferma
     // la sequenza senza spedire niente, finche' non esiste un'email sua.
-    const destinazione = brand === "Spaggiari" ? "send_cancel"
-      : brand === "Italia Scuola" ? "send_cancel_is_ora" : "cancelled";
+    // 26 nov 2026 (Andrea): per Italia Scuola l'avviso di annullamento NON va a tutti gli invitati della promozione (migliaia di contatti)
+    // ma solo agli ISCRITTI, e li avvisa il motore degli annullamenti (mail «ANNULLA codice» a svilupposcuola@, annullamenti_italiascuola.js).
+    // Qui i tracking si chiudono a «cancelled»: finiscono invito e promemoria, senza mail. Il flusso send_cancel_is_ora resta spento per costruzione.
+    const destinazione = brand === "Spaggiari" ? "send_cancel" : "cancelled";
     // un evento gia' annullato e senza tracking attivi e' a posto: niente da fare, niente rumore nel log
     const attivi = await hfetch(`${BASE}/crm/v3/objects/${TR}/search`, { method: "POST", headers: H, body: JSON.stringify({
       filterGroups: [{ filters: [{ propertyName: "dem_v5_evento_id", operator: "EQ", value: eid },
